@@ -1,0 +1,163 @@
+# ── Smart Vision System — Docker Compose (Development) ────────────────────────
+#
+# Starts the full stack locally:
+#   postgres       → database
+#   redis          → message broker + pub/sub
+#   backend        → FastAPI + AI pipeline (hot-reload)
+#   celery_cameras → camera AI inference workers
+#   celery_alerts  → alert persistence worker
+#
+# Usage:
+#   docker compose up -d                      # start all services
+#   docker compose up postgres redis -d       # infra only (for local dev)
+#   docker compose logs -f                    # follow all logs
+#   docker compose down                       # stop all services
+#   docker compose down -v                    # stop + delete volumes (fresh start)
+#
+# Import convention:
+#   All Python imports use  `from backend.app.xxx`
+#   WORKDIR is /  so  backend/ → /backend/  and Python resolves correctly.
+
+services:
+
+  # ── PostgreSQL ───────────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: svs_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: svs
+      POSTGRES_PASSWORD: svs
+      POSTGRES_DB: svs
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U svs -d svs"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Redis ────────────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: svs_redis
+    restart: unless-stopped
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── FastAPI Backend ───────────────────────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: svs_backend
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      POSTGRES_URL: postgresql+asyncpg://svs:svs@postgres:5432/svs
+      REDIS_URL: redis://redis:6379/0
+      DEBUG: "true"
+    volumes:
+      - ./backend:/backend        # hot-reload: maps to /backend inside container
+      - ./models:/backend/models  # shared model weights
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: >
+      uvicorn backend.app.main:app
+      --host 0.0.0.0
+      --port 3000
+      --reload
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/v1/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  # ── Celery Camera Workers ─────────────────────────────────────────────────────
+  celery_cameras:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: svs_celery_cameras
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      POSTGRES_URL: postgresql+asyncpg://svs:svs@postgres:5432/svs
+      REDIS_URL: redis://redis:6379/0
+    volumes:
+      - ./backend:/backend
+      - ./models:/backend/models
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    command: >
+      celery -A backend.app.workers.celery_app worker
+      --loglevel=info
+      --concurrency=4
+      -Q cameras
+
+  # ── Celery Alert Worker ───────────────────────────────────────────────────────
+  celery_alerts:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: svs_celery_alerts
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      POSTGRES_URL: postgresql+asyncpg://svs:svs@postgres:5432/svs
+      REDIS_URL: redis://redis:6379/0
+    volumes:
+      - ./backend:/backend
+      - ./models:/backend/models
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    # Run the alert persistence worker directly as a long-lived asyncio process.
+    # (run_alert_worker is a coroutine with no Celery task, so a Celery worker
+    #  on -Q alerts had nothing to consume.) (C6)
+    command: >
+      python -c "import asyncio; from backend.app.workers.alert_worker import run_alert_worker; asyncio.run(run_alert_worker())"
+
+  # ── Frontend (Next.js) — Phase 3 ──────────────────────────────────────────────
+  frontend:
+    image: node:20-alpine
+    container_name: svs_frontend
+    working_dir: /app
+    volumes:
+      - ./frontend:/app
+    ports:
+      - "3001:3001"
+    depends_on:
+      - backend
+    command: sh -c "npm install && npm run dev"
+    profiles:
+      - frontend    # only starts with: docker compose --profile frontend up
+
+networks:
+  svs_network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:

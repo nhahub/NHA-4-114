@@ -1,0 +1,40 @@
+# ── Smart Vision System — Python Dependencies ─────────────────────────────────
+# Compatible with Python 3.13
+# Install: pip install -r backend/requirements.txt
+
+# ── Web framework ──────────────────────────────────────────────────────────────
+fastapi==0.115.*
+uvicorn[standard]==0.32.*
+python-multipart==0.0.*
+
+# ── Database ───────────────────────────────────────────────────────────────────
+sqlalchemy[asyncio]==2.0.*
+asyncpg==0.30.*
+alembic==1.14.*
+
+# ── Redis ──────────────────────────────────────────────────────────────────────
+redis[asyncio]==5.2.*
+
+# ── Task queue ─────────────────────────────────────────────────────────────────
+celery==5.4.*
+kombu==5.4.*
+
+# ── AI / Computer Vision ───────────────────────────────────────────────────────
+ultralytics==8.3.*          # YOLOv8 — includes PyTorch CPU by default
+opencv-python-headless==4.10.*
+supervision==0.25.*         # ByteTrack wrapper + annotation utilities
+numpy==2.1.*                # Pre-built wheels available for Python 3.13
+
+# ── Settings / config ──────────────────────────────────────────────────────────
+pydantic==2.10.*
+pydantic-settings==2.7.*
+
+# ── Authentication ─────────────────────────────────────────────────────────────
+python-jose[cryptography]==3.3.*   # JWT encoding / decoding
+passlib[bcrypt]==1.7.*    # password hashing context
+bcrypt==4.0.1             # password hashing (bcrypt)
+
+# ── Utilities ──────────────────────────────────────────────────────────────────
+python-dotenv==1.0.*
+httpx==0.28.*               # async HTTP client (used in tests + health probes)
+pillow==11.*                # image processing (heatmap export)

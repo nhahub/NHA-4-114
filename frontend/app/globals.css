@@ -1,0 +1,103 @@
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500;600&family=Space+Mono:wght@400;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-bg: #080C12;
+  --color-surface: #0D1117;
+  --color-accent: #00D4FF;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  background: var(--color-bg);
+  color: #E8EDF3;
+  font-family: 'IBM Plex Sans', system-ui, sans-serif;
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  background: var(--color-bg);
+  min-height: 100vh;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+::-webkit-scrollbar-track {
+  background: #0D1117;
+}
+::-webkit-scrollbar-thumb {
+  background: #243040;
+  border-radius: 2px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #00D4FF44;
+}
+
+/* Selection */
+::selection {
+  background: #00D4FF33;
+  color: #00D4FF;
+}
+
+@layer components {
+  .panel {
+    @apply bg-surface-800 border border-border rounded-lg;
+  }
+
+  .panel-header {
+    @apply px-4 py-3 border-b border-border flex items-center justify-between;
+  }
+
+  .stat-label {
+    @apply text-xs font-mono uppercase tracking-widest text-ink-secondary;
+  }
+
+  .stat-value {
+    @apply text-2xl font-display text-ink-primary;
+  }
+
+  .badge-high {
+    @apply bg-severity-high-dim text-severity-high border border-severity-high/30 px-2 py-0.5 rounded text-xs font-mono uppercase;
+  }
+  .badge-medium {
+    @apply bg-severity-medium-dim text-severity-medium border border-severity-medium/30 px-2 py-0.5 rounded text-xs font-mono uppercase;
+  }
+  .badge-low {
+    @apply bg-severity-low-dim text-severity-low border border-severity-low/30 px-2 py-0.5 rounded text-xs font-mono uppercase;
+  }
+  .badge-info {
+    @apply bg-severity-info-dim text-severity-info border border-severity-info/30 px-2 py-0.5 rounded text-xs font-mono uppercase;
+  }
+
+  .btn-primary {
+    @apply bg-accent text-surface-900 font-mono font-semibold text-sm px-4 py-2 rounded hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed;
+  }
+
+  .btn-ghost {
+    @apply text-ink-secondary hover:text-ink-primary border border-border hover:border-border-bright px-4 py-2 rounded text-sm font-mono transition-colors;
+  }
+
+  .input-field {
+    @apply bg-surface-700 border border-border rounded px-3 py-2 text-sm text-ink-primary font-mono placeholder-ink-muted focus:outline-none focus:border-accent/50 transition-colors w-full;
+  }
+
+  .nav-link {
+    @apply flex items-center gap-3 px-3 py-2.5 rounded text-ink-secondary hover:text-ink-primary hover:bg-surface-600 transition-colors text-sm font-mono;
+  }
+
+  .nav-link-active {
+    @apply flex items-center gap-3 px-3 py-2.5 rounded text-accent bg-accent/5 border-l-2 border-accent text-sm font-mono;
+  }
+}
